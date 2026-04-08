@@ -41,6 +41,7 @@ def run_task(task_id: str, client: OpenAI):
     rewards = []
     success = False
     error_msg = "null"
+    score = 0.0
 
     try:
         while not done and step_count < MAX_STEPS:
