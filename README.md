@@ -1,3 +1,14 @@
+---
+title: SQL Review Env
+emoji: 📊
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+tags:
+  - openenv
+---
+
 # SQL Review Environment
 
 Train AI agents to review, fix, and optimize SQL queries.
