@@ -7,6 +7,10 @@ from .models import SQLObservation, SQLAction, SQLReward
 app = FastAPI()
 env = SQLReviewEnv()
 
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "SQL Review Env API is running."}
+
 @app.post("/reset", response_model=SQLObservation)
 async def reset(payload: Optional[Dict[str, Any]] = Body(default=None)):
     task_id = "syntax-fix"
