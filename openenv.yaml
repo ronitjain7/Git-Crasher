@@ -1,0 +1,27 @@
+name: sql-review-env
+version: "1.0.0"
+description: "Train AI agents to review, fix, and optimize SQL queries"
+tags: [openenv, sql, code-review, developer-tools]
+entry_point: sql_env.server:app
+tasks:
+  - id: syntax-fix
+    difficulty: easy
+    description: "Fix a SQL query containing deliberate syntax errors"
+  - id: performance-tune
+    difficulty: medium
+    description: "Rewrite a slow query to eliminate full table scans"
+  - id: schema-design
+    difficulty: hard
+    description: "Design a normalized relational schema from requirements"
+observation_space:
+  type: object
+  properties:
+    task_id: {type: string}
+    db_schema: {type: string}
+    query: {type: string}
+    error_message: {type: string, nullable: true}
+    step: {type: integer}
+action_space:
+  type: object
+  properties:
+    sql: {type: string}
