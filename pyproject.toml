@@ -17,4 +17,4 @@ dependencies = [
 ]
 
 [project.scripts]
-server = "sql_env.server:app"
+server = "server.app:main"
