@@ -70,7 +70,7 @@ def create_demo():
             st = env.state()
             status_text = f"**Step:** {st['current_step']} / {st['max_steps']} | **Done:** {st['done']} | **Total Score:** {st['last_reward']:.2f}"
             
-            r_val = reward.dict()
+            r_val = reward.model_dump()
             # Surface any SQLite error from the grader into the error box
             error_msg = (
                 reward.info.get("error") or

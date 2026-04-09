@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Body, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from typing import Optional, Dict, Any
+import asyncio
 
 from .env import SQLReviewEnv
 from .models import SQLObservation, SQLAction, SQLReward
@@ -11,6 +12,9 @@ app = FastAPI(
     version="1.0.0",
 )
 env = SQLReviewEnv()
+# Fix 5: Asyncio lock to prevent concurrent /reset + /step race conditions
+# on the shared env singleton. Ensures one request at a time touches DB state.
+env_lock = asyncio.Lock()
 
 # ── Core game endpoints ──────────────────────────────────────────────────────
 
@@ -23,11 +27,13 @@ async def reset(payload: Optional[Dict[str, Any]] = Body(default=None)):
     task_id = "syntax-fix"
     if payload and "task_id" in payload:
         task_id = payload["task_id"]
-    return await env.reset(task_id=task_id)
+    async with env_lock:
+        return await env.reset(task_id=task_id)
 
 @app.post("/step", response_model=SQLReward)
 async def step(action: SQLAction):
-    return await env.step(action)
+    async with env_lock:
+        return await env.step(action)
 
 @app.get("/state")
 def state():

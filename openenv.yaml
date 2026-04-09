@@ -13,12 +13,22 @@ tasks:
   - id: schema-design
     difficulty: hard
     description: "Design a normalized relational schema from requirements"
+  - id: aggregation-mastery
+    difficulty: medium
+    description: "Write a GROUP BY + HAVING aggregate query for revenue analysis"
+  - id: data-mutation
+    difficulty: medium
+    description: "Execute a safe, targeted UPDATE with a precise WHERE clause"
+  - id: advanced-joins
+    difficulty: hard
+    description: "Construct a LEFT JOIN that correctly preserves NULL rows"
 observation_space:
   type: object
   properties:
     task_id: {type: string}
     db_schema: {type: string}
     query: {type: string}
+    expected_hint: {type: string, nullable: true}
     error_message: {type: string, nullable: true}
     step: {type: integer}
 action_space:
