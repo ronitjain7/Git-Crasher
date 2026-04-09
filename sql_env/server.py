@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Body, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from typing import Optional, Dict, Any
 
 from .env import SQLReviewEnv
@@ -15,8 +15,8 @@ env = SQLReviewEnv()
 # ── Core game endpoints ──────────────────────────────────────────────────────
 
 @app.get("/")
-def read_root():
-    return {"status": "ok", "message": "SQL Review Env API is running."}
+async def root_redirect():
+    return RedirectResponse(url="/ui")
 
 @app.post("/reset", response_model=SQLObservation)
 async def reset(payload: Optional[Dict[str, Any]] = Body(default=None)):
