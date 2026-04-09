@@ -42,7 +42,9 @@ class SQLReviewEnv:
             return 0
             
         self.conn.set_progress_handler(timeout_handler, 1000)
-        
+
+        # Anchor start time before fixtures load so the timeout is valid immediately
+        self._query_start_time = time.time()
         load_fixtures(self.conn, self.task_id)
 
         task_data = TASKS[self.task_id]
@@ -92,3 +94,9 @@ class SQLReviewEnv:
             "last_reward": self.last_reward,
             "done": self.done
         }
+
+    def close(self) -> None:
+        """Cleanly close the SQLite connection. Called on server shutdown."""
+        if self.conn:
+            self.conn.close()
+            self.conn = None

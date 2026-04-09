@@ -8,7 +8,7 @@ def _rows_to_set(rows):
 def get_table_details(conn):
     """Extract full PRAGMA structural definitions to precisely grade DDL queries."""
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [r[0] for r in cursor.fetchall()]
     schema = {}
     for t in tables:
@@ -22,7 +22,7 @@ def get_table_details(conn):
 def dump_all_data(conn):
     """Extract all table rows globally to precisely grade DML queries."""
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [r[0] for r in cursor.fetchall()]
     data = {}
     for t in tables:
@@ -115,7 +115,8 @@ def grade_sql(task_id, conn, agent_sql, expected_sql, step, max_steps):
             info["error"] = str(e)
             
         try:
-            cursor.executescript(agent_sql)
+            # Use execute() (not executescript) so the progress_handler timeout remains active
+            cursor.execute(agent_sql)
             breakdown["syntax"] = 0.30
             breakdown["execution"] = 0.25
             

@@ -73,15 +73,20 @@ def generate_fixtures(conn):
 # --- Blazing Fast Master Template Cache ---
 _MASTER_CONN = None
 
-def get_master_db(task_id=None):
-    """Lazily generates and guarantees a single read-only Master Memory DB."""
+def get_master_db(task_id=None, force_refresh=False):
+    """Lazily generates and guarantees a single read-only Master Memory DB.
+    Pass force_refresh=True to invalidate the cache and regenerate fixtures.
+    """
     if task_id == "schema-design":
         # Schema tasks require a globally clean slate constraint
         c = sqlite3.connect(":memory:")
         c.row_factory = sqlite3.Row
         return c
-        
+
     global _MASTER_CONN
+    if force_refresh and _MASTER_CONN is not None:
+        _MASTER_CONN.close()
+        _MASTER_CONN = None
     if _MASTER_CONN is None:
         _MASTER_CONN = sqlite3.connect(":memory:")
         _MASTER_CONN.row_factory = sqlite3.Row
@@ -108,7 +113,7 @@ TASKS = {
         "validation_query": "SELECT orders.id, orders.user_id, orders.total, orders.order_date FROM orders JOIN users ON orders.user_id = users.id WHERE users.email LIKE '%@gmail.com';"
     },
     "schema-design": {
-        "db_schema": "None (Create from scratch)",
+        "db_schema": "No pre-existing schema. Design from scratch.",
         "query": "",
         "expected_hint": "Design a relational schema for: 'A social media platform where users can post messages, other users can like those messages, and users can follow each other.'",
         "validation_query": "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE posts (id INTEGER PRIMARY KEY, user_id INTEGER, content TEXT); CREATE TABLE likes (id INTEGER PRIMARY KEY, post_id INTEGER, user_id INTEGER); CREATE TABLE follows (follower_id INTEGER, followed_id INTEGER, PRIMARY KEY(follower_id, followed_id));"

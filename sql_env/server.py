@@ -16,6 +16,11 @@ env = SQLReviewEnv()
 # on the shared env singleton. Ensures one request at a time touches DB state.
 env_lock = asyncio.Lock()
 
+@app.on_event("shutdown")
+async def on_shutdown():
+    """Cleanly release the SQLite connection when the server stops."""
+    env.close()
+
 # ── Core game endpoints ──────────────────────────────────────────────────────
 
 @app.get("/")

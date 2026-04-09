@@ -1,0 +1,25 @@
+# .dockerignore — Excludes files from Docker COPY . . during image build
+# These files still exist on GitHub; they just don't bloat the container image.
+
+# Python cache (Windows .pyc files are incompatible with Linux Docker env)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment (Docker installs fresh from requirements.txt)
+.venv/
+venv/
+env/
+
+# Git metadata (no reason to expose commit history inside container)
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
