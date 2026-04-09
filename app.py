@@ -105,8 +105,10 @@ def create_demo():
 
 demo = create_demo()
 
-# Mount the interactive UI to the existing FastApi backend at root so HF Space serves it correctly
-app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+# Mount the interactive UI at /ui; root redirect is handled in server.py
+app = gr.mount_gradio_app(fastapi_app, demo, path="/ui")
 
 if __name__ == '__main__':
-    uvicorn.run("app:app", host="0.0.0.0", port=7860)
+    # proxy_headers=True tells uvicorn to trust X-Forwarded-Proto: https from HF's load balancer
+    # This ensures Gradio generates correct https:// iframe URLs, preventing mixed content errors
+    uvicorn.run("app:app", host="0.0.0.0", port=7860, proxy_headers=True, forwarded_allow_ips="*")
