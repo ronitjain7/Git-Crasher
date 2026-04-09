@@ -10,7 +10,7 @@ class SQLReviewEnv:
         self.conn = None
         self.task_id = "syntax-fix"
         self.step_count = 0
-        self.max_steps = 10
+        self.max_steps = 8
         self.last_reward = 0.0
         self.done = False
         self.last_error: Optional[str] = None
