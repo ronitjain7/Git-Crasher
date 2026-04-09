@@ -11,7 +11,7 @@ def create_demo():
         ### Train | Review | Optimize
         Welcome to the OpenEnv SQL training environment. Act as an agent directly, iterate on broken SQL, and receive dense evaluation rewards!
         ''')
-        
+
         with gr.Row():
             with gr.Column(scale=1):
                 task_dropdown = gr.Dropdown(
@@ -21,52 +21,68 @@ def create_demo():
                     interactive=True
                 )
                 reset_btn = gr.Button("🔄 Reset Environment", variant="primary")
-                
+
                 gr.Markdown("### Episode Status")
                 status_block = gr.Markdown("Waiting to load state...")
-                
+
             with gr.Column(scale=2):
                 gr.Markdown("### Observation Space")
-                hint_box = gr.Textbox(label="Expected Hint", interactive=False)
+                # lines=3 ensures long hints (e.g. schema-design) are not truncated
+                hint_box = gr.Textbox(label="Expected Hint", interactive=False, lines=3)
                 schema_box = gr.Textbox(label="Database Schema", interactive=False, lines=2)
-        
+
         gr.Markdown("---")
         gr.Markdown("### Agent Action: SQL Input")
         sql_input = gr.Code(label="Query Editor", language="sql", lines=15, value="-- Click Reset to load the task query.")
         submit_btn = gr.Button("▶️ Execute & Submit Step", variant="secondary")
-        
+
         gr.Markdown("---")
         gr.Markdown("### 🏆 Reaction & Reward (Feedback Phase)")
         with gr.Row():
-            error_box = gr.Textbox(label="Execution Error (if any)", interactive=False, lines=2)
+            # Relabeled from "Execution Error (if any)" — shows both errors and success messages
+            error_box = gr.Textbox(label="Execution Feedback", interactive=False, lines=2)
             reward_box = gr.JSON(label="Detailed Reward Signal", value={})
 
         # --- Internal Application Logic ---
-        
+
         async def ui_reset(task_id):
             async with env_lock:
                 obs = await env.reset(task_id)
 
             st = env.state()
-            status_text = f"**Step:** {st['current_step']} / {st['max_steps']} | **Done:** {st['done']} | **Total Score:** {st['last_reward']:.2f}"
+            status_text = (
+                f"**Step:** {st['current_step']} / {st['max_steps']} "
+                f"| **Done:** {st['done']} "
+                f"| **Total Score:** {st['last_reward']:.2f}"
+            )
+
+            # If query is empty (schema-design task), show a helpful SQL placeholder
+            query_display = obs.query if obs.query.strip() else (
+                "-- Design your schema here. Use SQLite syntax only.\n"
+                "-- Example: CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL);"
+            )
 
             return (
                 obs.expected_hint,
                 obs.db_schema,
-                obs.query,
+                query_display,
                 obs.error_message or "No errors during reset phase.",
                 {},  # Clear reward box
                 status_text,
-                gr.update(interactive=True, value="▶️ Execute & Submit Step")  # Re-enable btn
+                gr.update(interactive=True, value="▶️ Execute & Submit Step")
             )
-            
+
         async def ui_step(sql_string):
             async with env_lock:
                 reward = await env.step(SQLAction(sql=sql_string))
 
             st = env.state()
             done = reward.done
-            status_text = f"**Step:** {st['current_step']} / {st['max_steps']} | **Done:** {done} | **Total Score:** {st['last_reward']:.2f}"
+            status_text = (
+                f"**Step:** {st['current_step']} / {st['max_steps']} "
+                f"| **Done:** {done} "
+                f"| **Total Score:** {st['last_reward']:.2f}"
+            )
 
             r_val = reward.model_dump()
             error_msg = (
@@ -76,7 +92,7 @@ def create_demo():
                 "✅ No errors — SQL executed cleanly."
             )
 
-            # Fix 10: Visual done indicator — disable submit button when episode ends
+            # Visual done indicator — disable submit button and update label when episode ends
             btn_update = gr.update(
                 interactive=not done,
                 value="✅ Episode Complete — Click Reset to Start Again" if done else "▶️ Execute & Submit Step"
@@ -84,7 +100,7 @@ def create_demo():
             return r_val, status_text, error_msg, btn_update
 
         # --- Wiring Events ---
-        
+
         reset_btn.click(
             fn=ui_reset,
             inputs=[task_dropdown],
@@ -103,7 +119,7 @@ def create_demo():
             inputs=[task_dropdown],
             outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn]
         )
-        
+
     return demo
 
 demo = create_demo()
