@@ -1,3 +1,12 @@
+---
+title: SQL Review Env
+emoji: 📊
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # 🗄️ SQL Review Environment (`sql-review-env`)
 
 An [OpenEnv](https://github.com/meta-pytorch/OpenEnv) compliant reinforcement learning environment designed to train AI agents in real-world SQL code review, debugging, and optimization tasks.
