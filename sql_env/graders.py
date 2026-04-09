@@ -138,39 +138,48 @@ def grade_sql(task_id, conn, agent_sql, expected_sql, step, max_steps):
 
     elif is_ddl:
         master = get_master_db(task_id)
+
+        # Fresh ephemeral clone for the agent's SQL — never pollute the live conn
+        agent_conn = sqlite3.connect(":memory:")
+        agent_conn.row_factory = sqlite3.Row
+        master.backup(agent_conn)
+
+        # Separate clone for the expected (validation) SQL
         expected_conn = sqlite3.connect(":memory:")
         expected_conn.row_factory = sqlite3.Row
         master.backup(expected_conn)
-        
+
         try:
-            cursor.executescript(agent_sql)
+            agent_conn.executescript(agent_sql)
             breakdown["syntax"] = 0.30
             breakdown["execution"] = 0.25
-            
+
             try:
                 expected_conn.executescript(expected_sql)
-                
-                # Diff schemas natively utilizing PRAGMA extracts
-                agent_schema = get_table_details(conn)
+
+                # Diff schemas using PRAGMA on the two ephemeral clones
+                agent_schema = get_table_details(agent_conn)
                 expected_schema = get_table_details(expected_conn)
-                
+
                 if agent_schema == expected_schema:
                     breakdown["correctness"] = 0.35
                     breakdown["performance"] = 0.10
                 else:
+                    # Partial credit: correct table names but column/FK mismatch
                     if set(agent_schema.keys()) == set(expected_schema.keys()):
-                        breakdown["correctness"] = 0.15 
+                        breakdown["correctness"] = 0.15
             except sqlite3.Error as e:
                 info["validation_error"] = str(e)
         except sqlite3.Error as e:
             info["error"] = str(e)
             try:
                 first_stmt = agent_sql.strip().rstrip(";").split(";")[0]
-                cursor.execute(f"EXPLAIN {first_stmt}")
+                agent_conn.execute(f"EXPLAIN {first_stmt}")
                 breakdown["syntax"] = 0.30
-            except:
+            except Exception:
                 pass
         finally:
+            agent_conn.close()
             expected_conn.close()
             
     total_reward = sum(breakdown.values())

@@ -98,7 +98,7 @@ TASKS = {
     "syntax-fix": {
         "db_schema": "users(id, name, email, status, country, created_at)",
         "query": "SELCET id name email FROM users WHRE created_at > '2023-01-01';",
-        "expected_hint": "Select all active users created after 2023-01-01",
+        "expected_hint": "Select the id, name, and email of all users created after 2023-01-01.",
         "validation_query": "SELECT id, name, email FROM users WHERE created_at > '2023-01-01';"
     },
     "performance-tune": {
@@ -123,7 +123,7 @@ TASKS = {
     "data-mutation": {
         "db_schema": "users(id, name, email, status, country, created_at)",
         "query": "UPDATE users SET status = 'inactive';",
-        "expected_hint": "Safely update the status of all users from 'AU' to 'suspended'.",
+        "expected_hint": "Safely update the status to 'suspended' for all users whose country is 'AU'.",
         "validation_query": "UPDATE users SET status = 'suspended' WHERE country = 'AU';"
     },
     "advanced-joins": {
