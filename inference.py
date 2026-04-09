@@ -6,7 +6,7 @@ from typing import List, Optional, Dict
 from openai import OpenAI
 
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
-MODEL_NAME   = os.getenv("MODEL_NAME") or "meta-llama/Meta-Llama-3-8B-Instruct"
+MODEL_NAME   = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
 API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
 MAX_STEPS    = 8
 ENV_URL      = os.getenv("ENV_URL", "http://localhost:7860")
@@ -70,7 +70,7 @@ def get_llm_action(client: OpenAI, messages: List[Dict]) -> str:
             sql = sql.split("```")[1].split("```")[0].strip()
         return sql.strip().replace("\n", " ").replace("\r", " ")
     except Exception as exc:
-        print(f"[WARNING] LLM API limit reached or request failed. Falling back to SELECT 1. Error: {exc}", flush=True)
+        print(f"[WARNING] LLM API limit reached or request failed. Falling back to safe query. Error: {exc}", flush=True)
         return "SELECT 1;"
 
 
