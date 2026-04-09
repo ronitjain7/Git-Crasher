@@ -105,8 +105,8 @@ def create_demo():
 
 demo = create_demo()
 
-# Mount the interactive UI to the existing FastApi backend
-app = gr.mount_gradio_app(fastapi_app, demo, path="/ui")
+# Mount the interactive UI to the existing FastApi backend at root so HF Space serves it correctly
+app = gr.mount_gradio_app(fastapi_app, demo, path="/")
 
 if __name__ == '__main__':
     uvicorn.run("app:app", host="0.0.0.0", port=7860)
