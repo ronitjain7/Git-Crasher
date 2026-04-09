@@ -95,7 +95,7 @@ def grade_sql(task_id, conn, agent_sql, expected_sql, step, max_steps):
             pass
             
     total_reward = sum(breakdown.values())
-    total_reward = max(0.0, min(1.0, float(total_reward)))
+    total_reward = max(0.01, min(0.99, float(total_reward)))  # strictly within (0, 1) per validator
     done = total_reward >= 0.9 or step >= max_steps
     
     total_reward = round(total_reward, 2)

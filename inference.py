@@ -3,10 +3,10 @@ import requests
 from openai import OpenAI
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
+MODEL_NAME   = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 MAX_STEPS    = 8
-ENV_URL      = "http://localhost:7860"
+ENV_URL      = os.getenv("ENV_URL", "http://localhost:7860")
 
 def get_llm_action(client, prompt: str) -> str:
     response = client.chat.completions.create(
@@ -31,7 +31,7 @@ def run_task(task_id: str, client: OpenAI):
         obs = res.json()
     except Exception as e:
         print(f"[START] task={task_id} env=sql-review-env model={MODEL_NAME}")
-        print(f"[END] success=false steps=0 score=0.000 rewards=")
+        print(f"[END] success=false steps=0 score=0.01 rewards=")
         return
 
     print(f"[START] task={task_id} env=sql-review-env model={MODEL_NAME}")
@@ -45,7 +45,7 @@ def run_task(task_id: str, client: OpenAI):
 
     try:
         while not done and step_count < MAX_STEPS:
-            prompt = f"Task: {obs.get('expected_hint')}\\nSchema: {obs.get('db_schema')}\\nQuery: {obs.get('query')}"
+            prompt = f"Task: {obs.get('expected_hint')}\nSchema: {obs.get('db_schema')}\nQuery: {obs.get('query')}"
             action_sql = get_llm_action(client, prompt)
 
             step_res = requests.post(f"{ENV_URL}/step", json={"sql": action_sql})
@@ -67,18 +67,18 @@ def run_task(task_id: str, client: OpenAI):
                 break
 
         score = sum(rewards)
-        score = max(0.0, min(1.0, score))
+        score = max(0.01, min(0.99, score))  # strictly within (0, 1) per validator
         if score >= 0.5:
              success = True
 
     except Exception as e:
         error_msg = repr(str(e)).replace("\\n", " ")
-        score = 0.0
+        score = 0.01  # strictly within (0, 1) per validator
         success = False
         print(f"[STEP] step={step_count+1} action=null reward=0.00 done=true error={error_msg}")
 
     finally:
-        f_score = f"{score:.3f}"
+        f_score = f"{score:.2f}"  # spec requires 2 decimal places
         f_success = str(success).lower()
         f_rewards = ",".join([f"{r:.2f}" for r in rewards])
         print(f"[END] success={f_success} steps={step_count} score={f_score} rewards={f_rewards}")
