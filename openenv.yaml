@@ -2,7 +2,7 @@ name: sql-review-env
 version: "1.0.0"
 description: "Train AI agents to review, fix, and optimize SQL queries"
 tags: [openenv, sql, code-review, developer-tools]
-entry_point: sql_env.server:app
+entry_point: app:app
 tasks:
   - id: syntax-fix
     difficulty: easy
