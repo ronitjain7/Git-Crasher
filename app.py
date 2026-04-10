@@ -2,7 +2,8 @@ import uvicorn
 import gradio as gr
 import plotly.graph_objects as go
 
-from sql_env.server import app as fastapi_app, env, env_lock
+from sql_env.server import app as fastapi_app
+from sql_env.env import SQLReviewEnv
 from sql_env.models import SQLAction
 from sql_env.tasks import TASKS
 
@@ -50,6 +51,8 @@ def get_safe_status(st):
 def create_demo():
     # Gradio 6.0 compatibility: CSS needs to go to mount_gradio_app
     with gr.Blocks(title="SQL Review Environment") as demo:
+        session_env = gr.State(None)
+        
         with gr.Row():
             gr.Markdown('''
             # 🗄️ SQL Review Environment — Dashboard
@@ -98,11 +101,12 @@ def create_demo():
 
         # --- Internal Logic ---
 
-        async def ui_reset(task_id):
+        async def ui_reset(task_id, current_env):
             try:
-                async with env_lock:
-                    obs = await env.reset(task_id)
-                st = env.state()
+                if current_env is None:
+                    current_env = SQLReviewEnv()
+                obs = await current_env.reset(task_id)
+                st = current_env.state()
                 status_text = get_safe_status(st)
 
                 # If query is empty (schema-design task), show a helpful SQL placeholder
@@ -119,7 +123,8 @@ def create_demo():
                     {},  # Clear reward box
                     status_text,
                     gr.update(interactive=True, value="▶️ Execute & Submit Step"),
-                    create_reward_chart(st.get('history', [0.0]))
+                    create_reward_chart(st.get('history', [0.0])),
+                    current_env
                 )
             except Exception as e:
                 return (
@@ -127,14 +132,14 @@ def create_demo():
                     f"❌ Initialization Error: {str(e)}",
                     {}, "ERROR",
                     gr.update(),
-                    create_reward_chart([0.0])
+                    create_reward_chart([0.0]),
+                    current_env
                 )
 
-        async def ui_step(sql_string):
+        async def ui_step(sql_string, current_env):
             try:
-                async with env_lock:
-                    reward = await env.step(SQLAction(sql=sql_string))
-                st = env.state()
+                reward = await current_env.step(SQLAction(sql=sql_string))
+                st = current_env.state()
                 done = reward.done
                 status_text = get_safe_status(st)
 
@@ -156,33 +161,35 @@ def create_demo():
                     status_text,
                     error_msg,
                     btn_update,
-                    create_reward_chart(st.get('history', [0.0]))
+                    create_reward_chart(st.get('history', [0.0])),
+                    current_env
                 )
             except Exception as e:
                 return (
                     {"error": str(e)}, "ERROR",
                     f"❌ Step Error: {str(e)}",
                     gr.update(),
-                    create_reward_chart([0.0])
+                    create_reward_chart([0.0]),
+                    current_env
                 )
 
         # --- Wiring Events ---
         reset_btn.click(
             fn=ui_reset,
-            inputs=[task_dropdown],
-            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn, reward_chart]
+            inputs=[task_dropdown, session_env],
+            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn, reward_chart, session_env]
         )
 
         submit_btn.click(
             fn=ui_step,
-            inputs=[sql_input],
-            outputs=[reward_box, status_block, error_box, submit_btn, reward_chart]
+            inputs=[sql_input, session_env],
+            outputs=[reward_box, status_block, error_box, submit_btn, reward_chart, session_env]
         )
 
         demo.load(
             fn=ui_reset,
-            inputs=[task_dropdown],
-            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn, reward_chart]
+            inputs=[task_dropdown, session_env],
+            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn, reward_chart, session_env]
         )
 
     return demo
