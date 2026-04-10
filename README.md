@@ -88,45 +88,21 @@ The environment exposes **6 tasks** spanning the full spectrum of database engin
 
 The core innovation is a **single deterministic grading engine** (`sql_env/graders.py`) that handles all 6 task types without any per-task custom logic:
 
-```
-Agent SQL Submission
-        │
-        ▼
-┌───────────────────────────────────┐
-│  1. SYNTAX CHECK                  │
-│     EXPLAIN <sql> → parse error?  │
-└───────────────┬───────────────────┘
-                │
-                ▼
-┌───────────────────────────────────┐
-│  2. INTENT DETECTION              │
-│     First keyword → DQL/DML/DDL   │
-└──────────┬─────────┬──────────────┘
-           │         │          │
-          DQL       DML        DDL
-        (SELECT) (UPDATE/   (CREATE/
-                  DELETE)     ALTER)
-           │         │          │
-           ▼         ▼          ▼
-       Run both   Clone DB   Inspect
-       queries,   twice,     sqlite_
-       sort+hash  compare    master
-       results    table      for table
-                  state      presence
-                │
-                ▼
-┌───────────────────────────────────┐
-│  4. PERFORMANCE CHECK (DQL only)  │
-│     EXPLAIN QUERY PLAN → index?   │
-└───────────────┬───────────────────┘
-                │
-                ▼
-┌───────────────────────────────────┐
-│  5. REWARD VECTOR COMPOSITION     │
-│     syntax + execution +          │
-│     correctness + performance     │
-│     − penalties  → clamp [0,1]    │
-└───────────────────────────────────┘
+```mermaid
+graph TD
+    Sub([Agent SQL Submission]) --> S1["<b>1. SYNTAX CHECK</b><br/>EXPLAIN &lt;sql&gt; &rarr; parse error?"]
+    
+    S1 --> S2{"<b>2. INTENT DETECTION</b><br/>First keyword &rarr; DQL/DML/DDL"}
+    
+    S2 -->|"DQL<br/>(SELECT)"| N1["Run both queries,<br/>sort+hash results"]
+    S2 -->|"DML<br/>(UPDATE/DELETE)"| N2["Clone DB twice,<br/>compare table state"]
+    S2 -->|"DDL<br/>(CREATE/ALTER)"| N3["Inspect sqlite_master<br/>for table presence"]
+    
+    N1 --> S4["<b>4. PERFORMANCE CHECK (DQL only)</b><br/>EXPLAIN QUERY PLAN &rarr; index?"]
+    
+    S4 --> S5["<b>5. REWARD VECTOR COMPOSITION</b><br/>syntax + execution + correctness + performance<br/>&minus; penalties &rarr; clamp [0,1]"]
+    N2 --> S5
+    N3 --> S5
 ```
 
 ---
@@ -198,6 +174,7 @@ The reward function provides **dense partial-progress signals** across every ste
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - [Docker](https://docs.docker.com/get-docker/) (for containerized deployment)
 - Python 3.11+ (for local development)
 
