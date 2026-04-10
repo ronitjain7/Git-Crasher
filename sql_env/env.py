@@ -1,6 +1,6 @@
 import sqlite3
 import time
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from .models import SQLObservation, SQLAction, SQLReward
 from .tasks import TASKS, load_fixtures
 from .graders import grade_sql
@@ -15,6 +15,7 @@ class SQLReviewEnv:
         self.done = False
         self.last_error: Optional[str] = None
         self._query_start_time = 0
+        self.history: List[float] = []
 
     async def reset(self, task_id: str = "syntax-fix") -> SQLObservation:
         self.task_id = task_id
@@ -25,6 +26,7 @@ class SQLReviewEnv:
         self.done = False
         self.last_reward = 0.0
         self.last_error = None
+        self.history = [0.0]
 
         if self.conn:
             self.conn.close()
@@ -76,6 +78,7 @@ class SQLReviewEnv:
 
         self.last_reward = reward_val
         self.done = done
+        self.history.append(reward_val)
         # Persist the latest error message for next observation if needed
         self.last_error = info.get("error") or info.get("validation_error") or info.get("plan_error") or None
 
@@ -92,7 +95,8 @@ class SQLReviewEnv:
             "current_step": self.step_count,
             "max_steps": self.max_steps,
             "last_reward": self.last_reward,
-            "done": self.done
+            "done": self.done,
+            "history": self.history
         }
 
     def close(self) -> None:

@@ -1,31 +1,20 @@
-# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.pdb
-
-# Virtual environment
-.venv/
-venv/
+.Python
 env/
-
-# Compiled C extensions
-*.so
-
-# Distribution / packaging
-*.egg-info/
-dist/
-build/
-
-# Local development tools (keep off GitHub)
-validate-submission.sh
-
-# Editor / OS files
+venv/
+ENV/
+.env
+.venv
 .vscode/
 .idea/
-.DS_Store
-Thumbs.db
-
-# Local test artifacts
-*.log
+.gemini/
+*.sqlite3
+*.db
+/scratch/
+/artifacts/
+walkthrough.md
+task.md
+implementation_plan.md

@@ -61,7 +61,7 @@ def grade_sql(task_id, conn, agent_sql, expected_sql, step, max_steps):
         try:
             cursor.execute(f"EXPLAIN {agent_sql}")
             breakdown["syntax"] = 0.30
-        except sqlite3.Error as e:
+        except Exception as e:
             info["error"] = str(e)
 
         try:
@@ -93,12 +93,11 @@ def grade_sql(task_id, conn, agent_sql, expected_sql, step, max_steps):
                                 breakdown["performance"] = 0.0
                             else:
                                 breakdown["performance"] = 0.10
-                    except sqlite3.Error as e:
+                    except Exception as e:
                         info["plan_error"] = str(e)
-            except sqlite3.Error as e:
+            except Exception as e:
                 info["validation_error"] = str(e)
-
-        except sqlite3.Error as e:
+        except Exception as e:
             info["error"] = str(e)
 
     elif is_dml:
@@ -130,9 +129,9 @@ def grade_sql(task_id, conn, agent_sql, expected_sql, step, max_steps):
                 if agent_data == expected_data:
                     breakdown["correctness"] = 0.35
                     breakdown["performance"] = 0.10
-            except sqlite3.Error as e:
+            except Exception as e:
                 info["validation_error"] = str(e)
-        except sqlite3.Error as e:
+        except Exception as e:
             info["error"] = str(e)
         finally:
             expected_conn.close()
