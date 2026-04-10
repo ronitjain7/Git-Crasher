@@ -1,25 +1,36 @@
 # .dockerignore — Excludes files from Docker COPY . . during image build
-# These files still exist on GitHub; they just don't bloat the container image.
 
-# Python cache (Windows .pyc files are incompatible with Linux Docker env)
+# Python caches
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 
-# Virtual environment (Docker installs fresh from requirements.txt)
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Git metadata (no reason to expose commit history inside container)
+# Git metadata
 .git/
 .gitignore
 
-# IDE files
+# Environment variables
+.env*
+
+# IDE settings & OS files
 .vscode/
 .idea/
-
-# OS files
 .DS_Store
 Thumbs.db
+
+# Test Scripts (Not needed in production server container)
+demo.py
+inference.py
+validate-submission.sh
+
+# AI Assistant files (Not needed in container)
+.gemini/
+scratch/
+artifacts/
+walkthrough.md
+task.md
+implementation_plan.md
