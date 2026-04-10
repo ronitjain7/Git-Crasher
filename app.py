@@ -55,6 +55,47 @@ def create_demo():
         Identify bugs, optimize queries, and design schemas in a live SQLite environment.
         ''')
 
+def create_reward_chart(history):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=list(range(len(history))),
+        y=history,
+        mode='lines+markers',
+        name='Reward Signal',
+        line=dict(color='#38bdf8', width=3),
+        marker=dict(size=8, color='#818cf8', line=dict(width=2, color='#ffffff'))
+    ))
+    fig.update_layout(
+        title="📈 Real-Time Reward Signal Progress",
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color="#f1f5f9"),
+        xaxis=dict(title="Episode Steps", gridcolor="rgba(255,255,255,0.1)"),
+        yaxis=dict(title="Reward Value [0, 1]", range=[0, 1.05], gridcolor="rgba(255,255,255,0.1)"),
+        margin=dict(l=40, r=40, t=60, b=40),
+        height=300
+    )
+    return fig
+
+def get_safe_status(st):
+    try:
+        step = st.get('current_step', 0)
+        max_s = st.get('max_steps', 8)
+        done = st.get('done', False)
+        reward = float(st.get('last_reward', 0.0))
+        return f"**STEP:** {step} / {max_s} | **DONE:** {done} | **SCORE:** {reward:.2f}"
+    except Exception:
+        return "**STEP:** ? / ? | **DONE:** ? | **SCORE:** 0.00"
+
+def create_demo():
+    with gr.Blocks(title="SQL Review Environment", css=custom_css) as demo:
+        with gr.Row():
+            gr.Markdown('''
+            # 🗄️ SQL Review Environment — Dashboard
+            ### High-Stakes Database Engineering Simulation
+            Identify bugs, optimize queries, and design schemas in a live SQLite environment.
+            ''', elem_classes=["hero-text"])
+        
         with gr.Row():
             with gr.Column(scale=1):
                 task_dropdown = gr.Dropdown(
@@ -94,7 +135,7 @@ def create_demo():
                     error_box = gr.Textbox(label="Execution Feedback", interactive=False, lines=2)
                     reward_box = gr.JSON(label="Detailed Reward Signal", value={})
 
-        # --- Internal Application Logic ---
+        # --- Internal Logic ---
 
         async def ui_reset(task_id):
             try:
@@ -165,7 +206,6 @@ def create_demo():
                 )
 
         # --- Wiring Events ---
-
         reset_btn.click(
             fn=ui_reset,
             inputs=[task_dropdown],
@@ -178,7 +218,6 @@ def create_demo():
             outputs=[reward_box, status_block, error_box, submit_btn, reward_chart]
         )
 
-        # Hydrate the view dynamically on initial startup
         demo.load(
             fn=ui_reset,
             inputs=[task_dropdown],
@@ -189,11 +228,7 @@ def create_demo():
 
 
 demo = create_demo()
-
-# Mount the interactive UI at /ui; root redirect is handled in server.py
 app = gr.mount_gradio_app(fastapi_app, demo, path="/ui")
 
 if __name__ == '__main__':
-    # proxy_headers=True tells uvicorn to trust X-Forwarded-Proto: https from HF's load balancer
-    # This ensures Gradio generates correct https:// iframe URLs, preventing mixed content errors
     uvicorn.run("app:app", host="0.0.0.0", port=7860, proxy_headers=True, forwarded_allow_ips="*")

@@ -1,13 +1,8 @@
-# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.pdb
-
-# Virtual environment
-.venv/
-venv/
+.Python
 env/
 
 # Compiled C extensions
