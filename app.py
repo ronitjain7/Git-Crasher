@@ -27,7 +27,7 @@ def create_reward_chart(history):
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color="#f1f5f9"),
-        xaxis=dict(title="Episode Steps", gridcolor="rgba(255,255,255,0.1)"),
+        xaxis=dict(title="Episode Steps", range=[0, 8], dtick=1, autorange=False, gridcolor="rgba(255,255,255,0.1)"),
         yaxis=dict(title="Reward Value [0, 1]", range=[0, 1.05], gridcolor="rgba(255,255,255,0.1)"),
         margin=dict(l=40, r=40, t=60, b=40),
         height=300
@@ -48,47 +48,8 @@ def get_safe_status(st):
 
 
 def create_demo():
-    with gr.Blocks(title="SQL Review Environment", css=custom_css) as demo:
-        gr.Markdown('''
-        # 🗄️ SQL Review Environment — Dashboard
-        ### High-Stakes Database Engineering Simulation
-        Identify bugs, optimize queries, and design schemas in a live SQLite environment.
-        ''')
-
-def create_reward_chart(history):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=list(range(len(history))),
-        y=history,
-        mode='lines+markers',
-        name='Reward Signal',
-        line=dict(color='#38bdf8', width=3),
-        marker=dict(size=8, color='#818cf8', line=dict(width=2, color='#ffffff'))
-    ))
-    fig.update_layout(
-        title="📈 Real-Time Reward Signal Progress",
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color="#f1f5f9"),
-        xaxis=dict(title="Episode Steps", gridcolor="rgba(255,255,255,0.1)"),
-        yaxis=dict(title="Reward Value [0, 1]", range=[0, 1.05], gridcolor="rgba(255,255,255,0.1)"),
-        margin=dict(l=40, r=40, t=60, b=40),
-        height=300
-    )
-    return fig
-
-def get_safe_status(st):
-    try:
-        step = st.get('current_step', 0)
-        max_s = st.get('max_steps', 8)
-        done = st.get('done', False)
-        reward = float(st.get('last_reward', 0.0))
-        return f"**STEP:** {step} / {max_s} | **DONE:** {done} | **SCORE:** {reward:.2f}"
-    except Exception:
-        return "**STEP:** ? / ? | **DONE:** ? | **SCORE:** 0.00"
-
-def create_demo():
-    with gr.Blocks(title="SQL Review Environment", css=custom_css) as demo:
+    # Gradio 6.0 compatibility: CSS needs to go to mount_gradio_app
+    with gr.Blocks(title="SQL Review Environment") as demo:
         with gr.Row():
             gr.Markdown('''
             # 🗄️ SQL Review Environment — Dashboard
@@ -228,7 +189,8 @@ def create_demo():
 
 
 demo = create_demo()
-app = gr.mount_gradio_app(fastapi_app, demo, path="/ui")
+# Mount CSS dynamically for Gradio 6 compat
+app = gr.mount_gradio_app(fastapi_app, demo, path="/ui", css=custom_css)
 
 if __name__ == '__main__':
     uvicorn.run("app:app", host="0.0.0.0", port=7860, proxy_headers=True, forwarded_allow_ips="*")
