@@ -7,7 +7,7 @@ from sql_env.env import SQLReviewEnv
 from sql_env.models import SQLAction
 from sql_env.tasks import TASKS
 
-# Read custom CSS for Deep Space / Glassmorphism theme
+# Read custom CSS for Enterprise theme
 with open("assets/style.css", "r") as f:
     custom_css = f.read()
 
@@ -20,86 +20,111 @@ def create_reward_chart(history):
         y=history,
         mode='lines+markers',
         name='Reward Signal',
-        line=dict(color='#38bdf8', width=3),
-        marker=dict(size=8, color='#818cf8', line=dict(width=2, color='#ffffff'))
+        line=dict(color='#1f6feb', width=3),
+        marker=dict(size=8, color='#1f6feb')
     ))
     fig.update_layout(
-        title="📈 Real-Time Reward Signal Progress",
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color="#f1f5f9"),
-        xaxis=dict(title="Episode Steps", range=[0, 8], dtick=1, autorange=False, gridcolor="rgba(255,255,255,0.1)"),
-        yaxis=dict(title="Reward Value [0, 1]", range=[0, 1.05], gridcolor="rgba(255,255,255,0.1)"),
-        margin=dict(l=40, r=40, t=60, b=40),
-        height=300
+        font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"),
+        xaxis=dict(
+            title=dict(text="Episode Steps", font=dict(color='#888888')), 
+            range=[0, 8], dtick=1, autorange=False, 
+            showgrid=True, gridcolor='rgba(128,128,128,0.15)',
+            zeroline=False, showline=True, linewidth=1, 
+            linecolor='#888888', tickfont=dict(color='#888888')
+        ),
+        yaxis=dict(
+            title=dict(text="Reward Value [0, 1]", font=dict(color='#888888')), 
+            range=[0, 1.05], dtick=0.1,
+            showgrid=True, gridcolor='rgba(128,128,128,0.15)',
+            zeroline=False, showline=True, linewidth=1, 
+            linecolor='#888888', tickfont=dict(color='#888888')
+        ),
+        margin=dict(l=40, r=20, t=10, b=40),
+        height=360  # Adjust this value to increase/decrease the Episode Metrics height
     )
     return fig
 
 
 def get_safe_status(st):
-    """Defensive status formatter — never crashes even if state dict is malformed."""
+    """Defensive HTML status formatter — responsive HTML chips bounded by CSS."""
     try:
         step = st.get('current_step', 0)
         max_s = st.get('max_steps', 8)
         done = st.get('done', False)
         reward = float(st.get('last_reward', 0.0))
-        return f"**STEP:** {step} / {max_s} | **DONE:** {done} | **SCORE:** {reward:.2f}"
+        
+        return f"""
+        <div class="kpi-wrapper">
+            <span class="kpi-chip step">STEP {step}/{max_s}</span>
+            <span class="kpi-chip">DONE {done}</span>
+            <span class="kpi-chip">SCORE {reward:.2f}</span>
+        </div>
+        """
     except Exception:
-        return "**STEP:** ? / ? | **DONE:** ? | **SCORE:** 0.00"
+        return "<div class='kpi-wrapper'>Error Loading State</div>"
 
 
 def create_demo():
-    # Gradio 6.0 compatibility: CSS needs to go to mount_gradio_app
     with gr.Blocks(title="SQL Review Environment") as demo:
         session_env = gr.State(None)
         
-        with gr.Row():
-            gr.Markdown('''
-            # 🗄️ SQL Review Environment — Dashboard
-            ### High-Stakes Database Engineering Simulation
-            Identify bugs, optimize queries, and design schemas in a live SQLite environment.
-            ''', elem_classes=["hero-text"])
+        # 4. Hero / Navbar (Updated with HTML spans)
+        gr.Markdown(
+            "<span class='hero-emoji'>🗄️</span> **SQL Review Environment — Dashboard** <br>"
+            "<span class='hero-subtitle'> Train | Review | Optimize <br>"
+            "Welcome to the OpenEnv SQL training environment. Act as an agent directly, iterate on broken SQL, and receive dense evaluation rewards!"
+            "</span>", 
+            elem_classes=["hero-bar"]
+        )
         
+        # --- ROW 1: Context & Action ---
         with gr.Row():
+            
+            # Q1: STATE (S_t)
             with gr.Column(scale=1):
-                task_dropdown = gr.Dropdown(
-                    choices=list(TASKS.keys()),
-                    value="syntax-fix",
-                    label="Active Objective",
-                    interactive=True
-                )
-                reset_btn = gr.Button("🔄 Initialize Environment", variant="primary", elem_id="reset-btn")
+                gr.Markdown("### 📡 State Observation (S_t)", elem_classes=["section-header"])
+                
+                with gr.Row(equal_height=True):
+                    task_dropdown = gr.Dropdown(
+                        choices=list(TASKS.keys()), value="syntax-fix",
+                        interactive=True, label="Task ID", scale=3,
+                        elem_id="task-dropdown"
+                    )
+                    reset_btn = gr.Button("🔄 Reset Environment", variant="secondary", scale=1, elem_id="reset-btn")
+                
+                hint_box = gr.Textbox(label="Expected Hint", interactive=False, lines=2)
+                schema_box = gr.Textbox(label="Database Schema", interactive=False, lines=2)
+                
+            # Q2: ACTION (A_t)
+            with gr.Column(scale=1):
+                gr.Markdown("### ⌨️ Agent Action (A_t)", elem_classes=["section-header"])
+                
+                status_block = gr.HTML(get_safe_status({}))
+                
+                # Fused IDE Group mapping
+                with gr.Column(elem_classes=["ide-group"]):
+                    sql_input = gr.Code(label="SQL Code Editor", language="sql", lines=9, value="")
+                    submit_btn = gr.Button("▶️ Execute & Submit Step", variant="primary")
 
-                gr.Markdown("### 🛠️ Execution Status")
-                status_block = gr.Markdown("Ready to initialize...", elem_id="status-block")
-
-                gr.Markdown("---")
-                gr.Markdown("### 📡 Observation Space")
-                # lines=3 ensures long hints (e.g. schema-design) are not truncated
-                hint_box = gr.Textbox(label="Agent Goal & Intent", interactive=False, lines=3)
-                schema_box = gr.Textbox(label="Live DB Schema Definition", interactive=False, lines=5)
-
-            with gr.Column(scale=2):
-                gr.Markdown("### ⌨️ Agent Action: SQL Input")
-                sql_input = gr.Code(
-                    label="Query Editor",
-                    language="sql",
-                    lines=14,
-                    value="-- Select a task and click Initialize."
-                )
-                submit_btn = gr.Button("▶️ Execute & Submit Step", variant="secondary", elem_id="submit-btn")
-
-                gr.Markdown("### 📊 Reward Progression")
-                reward_chart = gr.Plot(label="Reward Signal", value=create_reward_chart([0.0]))
-
+        # --- ROW 2: Feedback & Metrics ---
         with gr.Row():
-            with gr.Column():
-                gr.Markdown("### 🏆 Feedback Phase")
-                with gr.Row():
-                    error_box = gr.Textbox(label="Execution Feedback", interactive=False, lines=2)
-                    reward_box = gr.JSON(label="Detailed Reward Signal", value={})
+            
+            # Q3: REWARD SIGNAL (R_t)
+            with gr.Column(scale=1):
+                gr.Markdown("### 🏆 Reward Signal (R_t)", elem_classes=["section-header"])
+                
+                error_box = gr.Textbox(label="Execution Error (if any)", interactive=False, lines=1)
+                reward_box = gr.JSON(label="Structured Reward", value={}, elem_classes=["json-container"])
+                
+            # Q4: METRICS
+            with gr.Column(scale=1):
+                gr.Markdown("### 📊 Episode Metrics", elem_classes=["section-header"])
+                
+                reward_chart = gr.Plot(label="", value=create_reward_chart([0.0]))
 
-        # --- Internal Logic ---
+        # --- Internal Application Logic ---
 
         async def ui_reset(task_id, current_env):
             try:
@@ -107,9 +132,8 @@ def create_demo():
                     current_env = SQLReviewEnv()
                 obs = await current_env.reset(task_id)
                 st = current_env.state()
-                status_text = get_safe_status(st)
+                status_html = get_safe_status(st)
 
-                # If query is empty (schema-design task), show a helpful SQL placeholder
                 query_display = obs.query if obs.query.strip() else (
                     "-- Design your schema here. Use SQLite syntax only.\n"
                     "-- Example: CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL);"
@@ -120,8 +144,8 @@ def create_demo():
                     obs.db_schema,
                     query_display,
                     obs.error_message or "✅ Environment Ready.",
-                    {},  # Clear reward box
-                    status_text,
+                    {},
+                    status_html,
                     gr.update(interactive=True, value="▶️ Execute & Submit Step"),
                     create_reward_chart(st.get('history', [0.0])),
                     current_env
@@ -130,7 +154,7 @@ def create_demo():
                 return (
                     "Error", "Error", "-- Error --",
                     f"❌ Initialization Error: {str(e)}",
-                    {}, "ERROR",
+                    {}, get_safe_status({}),
                     gr.update(),
                     create_reward_chart([0.0]),
                     current_env
@@ -141,7 +165,7 @@ def create_demo():
                 reward = await current_env.step(SQLAction(sql=sql_string))
                 st = current_env.state()
                 done = reward.done
-                status_text = get_safe_status(st)
+                status_html = get_safe_status(st)
 
                 error_msg = (
                     reward.info.get("error") or
@@ -150,15 +174,14 @@ def create_demo():
                     "✅ No errors — SQL executed cleanly."
                 )
 
-                # Visual done indicator — disable submit button when episode ends
                 btn_update = gr.update(
                     interactive=not done,
-                    value="✅ Episode Complete — Click Reset to Start Again" if done else "▶️ Execute & Submit Step"
+                    value="✅ Episode Complete — Reset to Start Again" if done else "▶️ Execute & Submit Step"
                 )
 
                 return (
                     reward.model_dump(),
-                    status_text,
+                    status_html,
                     error_msg,
                     btn_update,
                     create_reward_chart(st.get('history', [0.0])),
@@ -166,7 +189,7 @@ def create_demo():
                 )
             except Exception as e:
                 return (
-                    {"error": str(e)}, "ERROR",
+                    {"error": str(e)}, get_safe_status({}),
                     f"❌ Step Error: {str(e)}",
                     gr.update(),
                     create_reward_chart([0.0]),
@@ -174,18 +197,29 @@ def create_demo():
                 )
 
         # --- Wiring Events ---
+        
+        # 1. Reset Button Click
         reset_btn.click(
             fn=ui_reset,
             inputs=[task_dropdown, session_env],
             outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn, reward_chart, session_env]
         )
+        
+        # 2. Dynamic Dropdown Change instantly updates Environment Context
+        task_dropdown.change(
+            fn=ui_reset,
+            inputs=[task_dropdown, session_env],
+            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn, reward_chart, session_env]
+        )
 
+        # 3. Step Submission
         submit_btn.click(
             fn=ui_step,
             inputs=[sql_input, session_env],
             outputs=[reward_box, status_block, error_box, submit_btn, reward_chart, session_env]
         )
-
+        
+        # 4. Initial Launch Hydration
         demo.load(
             fn=ui_reset,
             inputs=[task_dropdown, session_env],
@@ -196,7 +230,6 @@ def create_demo():
 
 
 demo = create_demo()
-# Mount CSS dynamically for Gradio 6 compat
 app = gr.mount_gradio_app(fastapi_app, demo, path="/ui", css=custom_css)
 
 if __name__ == '__main__':
