@@ -1,15 +1,58 @@
 import uvicorn
 import gradio as gr
+import plotly.graph_objects as go
+
 from sql_env.server import app as fastapi_app, env, env_lock
 from sql_env.models import SQLAction
 from sql_env.tasks import TASKS
 
+# Read custom CSS for Deep Space / Glassmorphism theme
+with open("assets/style.css", "r") as f:
+    custom_css = f.read()
+
+
+def create_reward_chart(history):
+    """Real-time reward progression chart using Plotly."""
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=list(range(len(history))),
+        y=history,
+        mode='lines+markers',
+        name='Reward Signal',
+        line=dict(color='#38bdf8', width=3),
+        marker=dict(size=8, color='#818cf8', line=dict(width=2, color='#ffffff'))
+    ))
+    fig.update_layout(
+        title="📈 Real-Time Reward Signal Progress",
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color="#f1f5f9"),
+        xaxis=dict(title="Episode Steps", gridcolor="rgba(255,255,255,0.1)"),
+        yaxis=dict(title="Reward Value [0, 1]", range=[0, 1.05], gridcolor="rgba(255,255,255,0.1)"),
+        margin=dict(l=40, r=40, t=60, b=40),
+        height=300
+    )
+    return fig
+
+
+def get_safe_status(st):
+    """Defensive status formatter — never crashes even if state dict is malformed."""
+    try:
+        step = st.get('current_step', 0)
+        max_s = st.get('max_steps', 8)
+        done = st.get('done', False)
+        reward = float(st.get('last_reward', 0.0))
+        return f"**STEP:** {step} / {max_s} | **DONE:** {done} | **SCORE:** {reward:.2f}"
+    except Exception:
+        return "**STEP:** ? / ? | **DONE:** ? | **SCORE:** 0.00"
+
+
 def create_demo():
-    with gr.Blocks(title="SQL Review Environment") as demo:
+    with gr.Blocks(title="SQL Review Environment", css=custom_css) as demo:
         gr.Markdown('''
-        # 🗄️ SQL Review Environment Dashboard
-        ### Train | Review | Optimize
-        Welcome to the OpenEnv SQL training environment. Act as an agent directly, iterate on broken SQL, and receive dense evaluation rewards!
+        # 🗄️ SQL Review Environment — Dashboard
+        ### High-Stakes Database Engineering Simulation
+        Identify bugs, optimize queries, and design schemas in a live SQLite environment.
         ''')
 
         with gr.Row():
@@ -17,110 +60,133 @@ def create_demo():
                 task_dropdown = gr.Dropdown(
                     choices=list(TASKS.keys()),
                     value="syntax-fix",
-                    label="Select Task",
+                    label="Active Objective",
                     interactive=True
                 )
-                reset_btn = gr.Button("🔄 Reset Environment", variant="primary")
+                reset_btn = gr.Button("🔄 Initialize Environment", variant="primary", elem_id="reset-btn")
 
-                gr.Markdown("### Episode Status")
-                status_block = gr.Markdown("Waiting to load state...")
+                gr.Markdown("### 🛠️ Execution Status")
+                status_block = gr.Markdown("Ready to initialize...", elem_id="status-block")
+
+                gr.Markdown("---")
+                gr.Markdown("### 📡 Observation Space")
+                # lines=3 ensures long hints (e.g. schema-design) are not truncated
+                hint_box = gr.Textbox(label="Agent Goal & Intent", interactive=False, lines=3)
+                schema_box = gr.Textbox(label="Live DB Schema Definition", interactive=False, lines=5)
 
             with gr.Column(scale=2):
-                gr.Markdown("### Observation Space")
-                # lines=3 ensures long hints (e.g. schema-design) are not truncated
-                hint_box = gr.Textbox(label="Expected Hint", interactive=False, lines=3)
-                schema_box = gr.Textbox(label="Database Schema", interactive=False, lines=2)
+                gr.Markdown("### ⌨️ Agent Action: SQL Input")
+                sql_input = gr.Code(
+                    label="Query Editor",
+                    language="sql",
+                    lines=14,
+                    value="-- Select a task and click Initialize."
+                )
+                submit_btn = gr.Button("▶️ Execute & Submit Step", variant="secondary", elem_id="submit-btn")
 
-        gr.Markdown("---")
-        gr.Markdown("### Agent Action: SQL Input")
-        sql_input = gr.Code(label="Query Editor", language="sql", lines=15, value="-- Click Reset to load the task query.")
-        submit_btn = gr.Button("▶️ Execute & Submit Step", variant="secondary")
+                gr.Markdown("### 📊 Reward Progression")
+                reward_chart = gr.Plot(label="Reward Signal", value=create_reward_chart([0.0]))
 
-        gr.Markdown("---")
-        gr.Markdown("### 🏆 Reaction & Reward (Feedback Phase)")
         with gr.Row():
-            # Relabeled from "Execution Error (if any)" — shows both errors and success messages
-            error_box = gr.Textbox(label="Execution Feedback", interactive=False, lines=2)
-            reward_box = gr.JSON(label="Detailed Reward Signal", value={})
+            with gr.Column():
+                gr.Markdown("### 🏆 Feedback Phase")
+                with gr.Row():
+                    error_box = gr.Textbox(label="Execution Feedback", interactive=False, lines=2)
+                    reward_box = gr.JSON(label="Detailed Reward Signal", value={})
 
         # --- Internal Application Logic ---
 
         async def ui_reset(task_id):
-            async with env_lock:
-                obs = await env.reset(task_id)
+            try:
+                async with env_lock:
+                    obs = await env.reset(task_id)
+                st = env.state()
+                status_text = get_safe_status(st)
 
-            st = env.state()
-            status_text = (
-                f"**Step:** {st['current_step']} / {st['max_steps']} "
-                f"| **Done:** {st['done']} "
-                f"| **Total Score:** {st['last_reward']:.2f}"
-            )
+                # If query is empty (schema-design task), show a helpful SQL placeholder
+                query_display = obs.query if obs.query.strip() else (
+                    "-- Design your schema here. Use SQLite syntax only.\n"
+                    "-- Example: CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL);"
+                )
 
-            # If query is empty (schema-design task), show a helpful SQL placeholder
-            query_display = obs.query if obs.query.strip() else (
-                "-- Design your schema here. Use SQLite syntax only.\n"
-                "-- Example: CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL);"
-            )
-
-            return (
-                obs.expected_hint,
-                obs.db_schema,
-                query_display,
-                obs.error_message or "No errors during reset phase.",
-                {},  # Clear reward box
-                status_text,
-                gr.update(interactive=True, value="▶️ Execute & Submit Step")
-            )
+                return (
+                    obs.expected_hint,
+                    obs.db_schema,
+                    query_display,
+                    obs.error_message or "✅ Environment Ready.",
+                    {},  # Clear reward box
+                    status_text,
+                    gr.update(interactive=True, value="▶️ Execute & Submit Step"),
+                    create_reward_chart(st.get('history', [0.0]))
+                )
+            except Exception as e:
+                return (
+                    "Error", "Error", "-- Error --",
+                    f"❌ Initialization Error: {str(e)}",
+                    {}, "ERROR",
+                    gr.update(),
+                    create_reward_chart([0.0])
+                )
 
         async def ui_step(sql_string):
-            async with env_lock:
-                reward = await env.step(SQLAction(sql=sql_string))
+            try:
+                async with env_lock:
+                    reward = await env.step(SQLAction(sql=sql_string))
+                st = env.state()
+                done = reward.done
+                status_text = get_safe_status(st)
 
-            st = env.state()
-            done = reward.done
-            status_text = (
-                f"**Step:** {st['current_step']} / {st['max_steps']} "
-                f"| **Done:** {done} "
-                f"| **Total Score:** {st['last_reward']:.2f}"
-            )
+                error_msg = (
+                    reward.info.get("error") or
+                    reward.info.get("validation_error") or
+                    reward.info.get("plan_error") or
+                    "✅ No errors — SQL executed cleanly."
+                )
 
-            r_val = reward.model_dump()
-            error_msg = (
-                reward.info.get("error") or
-                reward.info.get("validation_error") or
-                reward.info.get("plan_error") or
-                "✅ No errors — SQL executed cleanly."
-            )
+                # Visual done indicator — disable submit button when episode ends
+                btn_update = gr.update(
+                    interactive=not done,
+                    value="✅ Episode Complete — Click Reset to Start Again" if done else "▶️ Execute & Submit Step"
+                )
 
-            # Visual done indicator — disable submit button and update label when episode ends
-            btn_update = gr.update(
-                interactive=not done,
-                value="✅ Episode Complete — Click Reset to Start Again" if done else "▶️ Execute & Submit Step"
-            )
-            return r_val, status_text, error_msg, btn_update
+                return (
+                    reward.model_dump(),
+                    status_text,
+                    error_msg,
+                    btn_update,
+                    create_reward_chart(st.get('history', [0.0]))
+                )
+            except Exception as e:
+                return (
+                    {"error": str(e)}, "ERROR",
+                    f"❌ Step Error: {str(e)}",
+                    gr.update(),
+                    create_reward_chart([0.0])
+                )
 
         # --- Wiring Events ---
 
         reset_btn.click(
             fn=ui_reset,
             inputs=[task_dropdown],
-            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn]
+            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn, reward_chart]
         )
 
         submit_btn.click(
             fn=ui_step,
             inputs=[sql_input],
-            outputs=[reward_box, status_block, error_box, submit_btn]
+            outputs=[reward_box, status_block, error_box, submit_btn, reward_chart]
         )
 
         # Hydrate the view dynamically on initial startup
         demo.load(
             fn=ui_reset,
             inputs=[task_dropdown],
-            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn]
+            outputs=[hint_box, schema_box, sql_input, error_box, reward_box, status_block, submit_btn, reward_chart]
         )
 
     return demo
+
 
 demo = create_demo()
 

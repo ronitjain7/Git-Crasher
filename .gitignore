@@ -20,12 +20,25 @@ build/
 
 # Local development tools (keep off GitHub)
 validate-submission.sh
+verify_format.py
 
 # Editor / OS files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# AI assistant artifacts
+.gemini/
+/scratch/
+/artifacts/
+walkthrough.md
+task.md
+implementation_plan.md
+
+# Local database files
+*.sqlite3
+*.db
 
 # Local test artifacts
 *.log

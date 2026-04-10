@@ -1,0 +1,89 @@
+/* 
+   Hackathon Premium Design System: Deep Space / Glassmorphism
+   Targeting Gradio components to create a stunning, high-end dashboard.
+*/
+
+:root {
+    --bg-color: #0c0f1d;
+    --card-bg: rgba(23, 27, 44, 0.7);
+    --accent-color: #38bdf8;
+    --neon-glow: 0 0 15px rgba(56, 189, 248, 0.4);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+}
+
+/* Background & Body */
+body, .gradio-container {
+    background: radial-gradient(circle at top right, #1e1b4b, #0c0f17) !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    color: var(--text-primary) !important;
+}
+
+/* Glassmorphism Cards */
+.gradio-container [data-testid="block-container"] > div {
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+/* Headers */
+h1, h2, h3 {
+    background: linear-gradient(to right, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+}
+
+/* Buttons */
+button.primary {
+    background: linear-gradient(135deg, #0284c7, #4f46e5) !important;
+    border: none !important;
+    box-shadow: var(--neon-glow) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.6) !important;
+}
+
+/* Textboxes & Code Editors */
+textarea, input, .monaco-editor {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    color: var(--text-primary) !important;
+}
+
+/* Sidebar Styling */
+.gradio-container [data-testid="column"] {
+    padding: 1rem !important;
+}
+
+/* Custom Micro-Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.gradio-container > div {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Reward Breakdown JSON */
+.gradio-container [data-testid="json"] {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-radius: 12px !important;
+}
+
+/* Step Counter & Status */
+#status-block {
+    font-family: 'Space Mono', monospace !important;
+    color: var(--accent-color) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
