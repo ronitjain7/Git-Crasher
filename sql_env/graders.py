@@ -47,7 +47,7 @@ def grade_sql(task_id, conn, agent_sql, expected_sql, step, max_steps):
     upper_expected = expected_sql.upper().strip()
 
     # Penalties for catastrophic destruction without WHERE clauses
-    if ("DROP " in upper_sql or "DELETE " in upper_sql) and "WHERE " not in upper_sql:
+    if ("DELETE " in upper_sql) and "WHERE " not in upper_sql:
         breakdown["penalty"] -= 0.05
 
     cursor = conn.cursor()
@@ -86,13 +86,6 @@ def grade_sql(task_id, conn, agent_sql, expected_sql, step, max_steps):
                         doing_full_scans = ("SCAN TABLE" in plan_str)
                         if "INDEX" in plan_str or "SEARCH TABLE" in plan_str or not doing_full_scans:
                              breakdown["performance"] = 0.10
-                             
-                        # Explicit legacy support for performance-tune full-scan logic 
-                        if task_id == "performance-tune":
-                            if ("SCAN TABLE ORDERS" in plan_str and "SCAN TABLE USERS" in plan_str):
-                                breakdown["performance"] = 0.0
-                            else:
-                                breakdown["performance"] = 0.10
                     except sqlite3.Error as e:
                         info["plan_error"] = str(e)
             except sqlite3.Error as e:

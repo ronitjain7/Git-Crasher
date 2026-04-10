@@ -115,8 +115,8 @@ TASKS = {
     "schema-design": {
         "db_schema": "No pre-existing schema. Design from scratch.",
         "query": "",
-        "expected_hint": "Design a relational schema for: 'A social media platform where users can post messages, other users can like those messages, and users can follow each other.'",
-        "validation_query": "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE posts (id INTEGER PRIMARY KEY, user_id INTEGER, content TEXT); CREATE TABLE likes (id INTEGER PRIMARY KEY, post_id INTEGER, user_id INTEGER); CREATE TABLE follows (follower_id INTEGER, followed_id INTEGER, PRIMARY KEY(follower_id, followed_id));"
+        "expected_hint": "Design a relational schema for: 'A social media platform where users can create posts, other users can like those posts, and users can follow each other (a user cannot follow themselves).'",
+        "validation_query": "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT); CREATE TABLE posts (id INTEGER PRIMARY KEY, user_id INTEGER, content TEXT); CREATE TABLE likes (id INTEGER PRIMARY KEY, post_id INTEGER, user_id INTEGER); CREATE TABLE follows (follower_id INTEGER, followed_id INTEGER, PRIMARY KEY(follower_id, followed_id), CHECK (follower_id != followed_id));"
     },
     # ── New Universal Tasks Engine Array ──
     "aggregation-mastery": {

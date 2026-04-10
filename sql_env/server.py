@@ -5,6 +5,7 @@ import asyncio
 
 from .env import SQLReviewEnv
 from .models import SQLObservation, SQLAction, SQLReward
+from .tasks import TASKS
 
 app = FastAPI(
     title="SQL Review Environment",
@@ -61,7 +62,7 @@ def metadata():
             "review, fix syntax errors, optimize performance, and design schemas for SQL queries."
         ),
         "version": "1.0.0",
-        "tasks": ["syntax-fix", "performance-tune", "schema-design"],
+        "tasks": list(TASKS.keys()),
     }
 
 @app.get("/schema")
