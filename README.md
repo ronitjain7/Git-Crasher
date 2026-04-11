@@ -123,7 +123,7 @@ The full state packet returned to the agent after every `reset()` or `step()`:
 | `query` | `str` | Starting SQL query — often containing deliberate bugs or inefficiencies |
 | `expected_hint` | `str` | Natural language description of the agent's goal |
 | `error_message` | `str \| None` | Last SQLite exception string from the engine, or `null` if clean |
-| `step` | `int` | Current episode step count (`max_steps = 10`) |
+| `step` | `int` | Current episode step count (`max_steps = 8`) |
 
 ### Action Space — `SQLAction`
 
@@ -167,7 +167,7 @@ The reward function provides **dense partial-progress signals** across every ste
 | Penalty | Weight | Condition |
 | :--- | :---: | :--- |
 | Destructive Command | `−0.05` | Unguarded `DROP` or `DELETE` (no `WHERE` clause) |
-| Step Exhaustion | `−0.10` | Agent exceeds `max_steps = 10` without solving the task |
+| Step Exhaustion | `−0.10` | Agent exceeds `max_steps = 8` without solving the task |
 
 ---
 
@@ -201,8 +201,11 @@ python -m venv .venv
 # Install dependencies
 pip install -r requirements.txt
 
-# Start the environment server
+# Start the Gradio UI (demo interface)
 python app.py
+
+# OR: Start the raw OpenEnv API server directly
+python -m uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
 
 ### 3. Run the Demo Showcase
@@ -244,7 +247,7 @@ Results achieved using the zero-shot baseline agent (`Qwen/Qwen2.5-72B-Instruct`
 
 | Task | Score | Observation |
 | :--- | :---: | :--- |
-| `syntax-fix` | **1.00** | Solved in 1–2 steps consistently |
+| `syntax-fix` | **0.99** | Solved in 1 step consistently (grader clamps max reward to `0.99`) |
 | `performance-tune` | **0.90** | Correctness achieved; occasional index miss costs the `+0.10` bonus |
 | `schema-design` | **0.90** | Frontier models sometimes hallucinate MySQL syntax (`AUTO_INCREMENT` instead of SQLite's `AUTOINCREMENT`) |
 | `aggregation-mastery` | **0.85** | `GROUP BY` solid; `HAVING` clause occasionally omitted |
@@ -260,21 +263,23 @@ Results achieved using the zero-shot baseline agent (`Qwen/Qwen2.5-72B-Instruct`
 
 ```
 sql-review-env/
-├── app.py              # Gradio UI + FastAPI app entry point
-├── demo.py             # Automated end-to-end showcase script (run this first!)
-├── inference.py        # OpenEnv-compliant LLM evaluation agent
-├── requirements.txt    # Python dependencies
-├── pyproject.toml      # Project metadata
-├── uv.lock             # Deterministic dependency lockfile (uv)
-├── openenv.yaml        # OpenEnv environment metadata declaration
-├── Dockerfile          # Container: python:3.11-slim + uvicorn + proxy headers
-├── README.md           # This document
+├── app.py                  # Gradio UI entry point (interactive demo)
+├── demo.py                 # Automated end-to-end showcase script (run this first!)
+├── inference.py            # OpenEnv-compliant LLM evaluation agent
+├── requirements.txt        # Python dependencies
+├── pyproject.toml          # Project metadata + entry_point: server.app:main
+├── uv.lock                 # Deterministic dependency lockfile (uv)
+├── openenv.yaml            # OpenEnv environment metadata declaration
+├── Dockerfile              # Container: python:3.11-slim + uvicorn + proxy headers
+├── validate-submission.sh  # Local pre-submission validation runner
+├── README.md               # This document
+├── server/
+│   └── app.py              # FastAPI server: /reset /step /state /health /metadata /schema /mcp
 └── sql_env/
-    ├── models.py       # Pydantic typed models: SQLObservation, SQLAction, SQLReward
-    ├── env.py          # Core environment: reset(), step(), state() + safety constraints
-    ├── graders.py      # Universal Intent-Based Grader (DQL / DML / DDL routing)
-    ├── tasks.py        # 6 task definitions + Master DB template cache
-    └── server.py       # FastAPI: /reset /step /state /health /metadata /schema /mcp
+    ├── models.py           # Pydantic typed models: SQLObservation, SQLAction, SQLReward
+    ├── env.py              # Core environment: reset(), step(), state() + safety constraints
+    ├── graders.py          # Universal Intent-Based Grader (DQL / DML / DDL routing)
+    └── tasks.py            # 6 task definitions + Master DB template cache
 ```
 
 ---
@@ -291,7 +296,7 @@ sql-review-env/
 | `/schema` endpoint | ✅ | `GET` — returns full action/observation/state JSON schemas |
 | `/mcp` endpoint | ✅ | `POST` — returns JSON-RPC 2.0 compliant payload |
 | Typed Pydantic models | ✅ | `SQLObservation`, `SQLAction`, `SQLReward` |
-| `openenv.yaml` present | ✅ | Environment metadata declared |
+| `openenv.yaml` present | ✅ | Declares `entry_point: server.app:main` with 6 tasks |
 | `openenv validate` passes | ✅ | All automated checks pass |
 | `docker build` succeeds | ✅ | `python:3.11-slim`, clean build, port 7860 |
 | Minimum 3 tasks | ✅ | 6 tasks implemented (Easy → Hard) |
