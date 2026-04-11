@@ -3,9 +3,9 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from typing import Optional, Dict, Any
 import asyncio
 
-from .env import SQLReviewEnv
-from .models import SQLObservation, SQLAction, SQLReward
-from .tasks import TASKS
+from sql_env.env import SQLReviewEnv
+from sql_env.models import SQLObservation, SQLAction, SQLReward
+from sql_env.tasks import TASKS
 
 app = FastAPI(
     title="SQL Review Environment",
@@ -54,7 +54,7 @@ def health():
 
 @app.get("/metadata")
 def metadata():
-    """Required by openenv validate: must return name and description strings"""
+    """Required by openenv validate: must return serialized task specs"""
     return {
         "name": "sql-review-env",
         "description": (
@@ -62,7 +62,7 @@ def metadata():
             "review, fix syntax errors, optimize performance, and design schemas for SQL queries."
         ),
         "version": "1.0.0",
-        "tasks": list(TASKS.keys()),
+        "tasks": [{"id": tid, "has_grader": True} for tid in TASKS.keys()],
     }
 
 @app.get("/schema")

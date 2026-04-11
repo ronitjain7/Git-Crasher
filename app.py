@@ -2,7 +2,7 @@ import uvicorn
 import gradio as gr
 import plotly.graph_objects as go
 
-from sql_env.server import app as fastapi_app
+from server.app import app as fastapi_app
 from sql_env.env import SQLReviewEnv
 from sql_env.models import SQLAction
 from sql_env.tasks import TASKS
