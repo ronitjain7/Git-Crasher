@@ -15,8 +15,8 @@ set -euo pipefail
 PING_URL="${1:-http://127.0.0.1:7860}"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 TIMESTAMP() { date "+%H:%M:%S"; }
-PASS="\033[0;32mPASSED\033[0m"
-FAIL="\033[0;31mFAILED\033[0m"
+PASS="$(printf '\033[0;32mPASSED\033[0m')"
+FAIL="$(printf '\033[0;31mFAILED\033[0m')"
 
 echo ""
 echo "========================================"
