@@ -9,27 +9,21 @@ tasks:
   - id: syntax-fix
     difficulty: easy
     description: "Fix a SQL query containing deliberate syntax errors"
-    has_grader: true
   - id: performance-tune
     difficulty: medium
     description: "Rewrite a slow query to eliminate full table scans"
-    has_grader: true
   - id: schema-design
     difficulty: hard
     description: "Design a normalized relational schema from requirements"
-    has_grader: true
   - id: aggregation-mastery
     difficulty: medium
     description: "Write a GROUP BY + HAVING aggregate query for revenue analysis"
-    has_grader: true
   - id: data-mutation
     difficulty: medium
     description: "Execute a safe, targeted UPDATE with a precise WHERE clause"
-    has_grader: true
   - id: advanced-joins
     difficulty: hard
     description: "Construct a LEFT JOIN that correctly preserves NULL rows"
-    has_grader: true
 observation_space:
   type: object
   properties:

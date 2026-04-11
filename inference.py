@@ -52,9 +52,9 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
     done_val = str(done).lower()
     print(f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}", flush=True)
 
-def log_end(success: bool, steps: int, rewards: List[float]) -> None:
+def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
-    print(f"[END] success={str(success).lower()} steps={steps} rewards={rewards_str}", flush=True)
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 # ── Fix 1 & 3: Stateful LLM call with rolling conversation history ────────────
 
@@ -193,8 +193,8 @@ def run_task(task_id: str, client: OpenAI):
             )
             messages.append({"role": "user", "content": feedback})
 
-        score = sum(rewards) / float(steps_taken) if steps_taken > 0 else 0.0
-        score = min(max(score, 0.0), 1.0)
+        score = sum(rewards) / float(steps_taken) if steps_taken > 0 else 0.01
+        score = min(max(score, 0.01), 0.99)
         success = score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception as e:
@@ -203,7 +203,7 @@ def run_task(task_id: str, client: OpenAI):
     finally:
         if not rewards:
             rewards = [0.01]
-        log_end(success=success, steps=steps_taken, rewards=rewards)
+        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 
 def main():
