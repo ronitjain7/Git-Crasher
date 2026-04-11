@@ -201,6 +201,8 @@ def run_task(task_id: str, client: OpenAI):
         print(f"[DEBUG] Runtime error occurred: {e}", flush=True)
 
     finally:
+        if not rewards:
+            rewards = [0.01]
         log_end(success=success, steps=steps_taken, rewards=rewards)
 
 

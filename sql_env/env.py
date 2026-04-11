@@ -11,7 +11,7 @@ class SQLReviewEnv:
         self.task_id = "syntax-fix"
         self.step_count = 0
         self.max_steps = 8
-        self.last_reward = 0.0
+        self.last_reward = 0.01
         self.done = False
         self.last_error: Optional[str] = None
         self._query_start_time = 0
@@ -24,9 +24,9 @@ class SQLReviewEnv:
 
         self.step_count = 0
         self.done = False
-        self.last_reward = 0.0
+        self.last_reward = 0.01
         self.last_error = None
-        self.history = [0.0]
+        self.history = [0.01]
 
         if self.conn:
             self.conn.close()
